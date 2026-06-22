@@ -1,52 +1,109 @@
-# Conveyor Belt Monitoring and Counting System
+/// VARIBALE SECTION
+PROGRAM PLC_PRG
+VAR
+    StartButton : BOOL := FALSE;
+    StopButton : BOOL := FALSE;
+    EmergencyStop : BOOL := FALSE;
+    ResetButton : BOOL := FALSE;
 
-## Overview
+    ConveyorMotor : BOOL := FALSE;
+	BoxSensor : BOOL := FALSE;
+	BeltMove : INT := 0;
+    GreenLamp : BOOL := FALSE;
+    RedLamp : BOOL := TRUE;
+	AlarmActive : BOOL := FALSE;
+    AlarmLamp : BOOL := FALSE;
+	
+	BoxCount : INT := 0;
+	SensorTrigger : R_TRIG;
+	SensorLamp : BOOL := FALSE;
+	CounterReset : BOOL := FALSE;
+	
+END_VAR
 
-This project is an industrial conveyor belt simulation developed in CODESYS using Structured Text (ST) and HMI Visualization. The system demonstrates fundamental PLC programming concepts, sensor integration, alarm handling, and product counting commonly used in industrial automation environments.
+//// IMPLEMENTATION SECTION
 
-## Features
+(* Emergency Stop *)
 
-* Start and Stop conveyor control
-* Emergency Stop (E-Stop) functionality
-* Alarm handling and reset system
-* Conveyor belt animation
-* Product detection sensor simulation
-* Sensor status indicator lamp
-* Product counting using R_TRIG (Rising Edge Trigger)
-* Real-time product count display
-* Progress bar monitoring
-* HMI visualization interface
+IF EmergencyStop THEN
+    AlarmActive := TRUE;
+END_IF;
 
-## Technologies Used
 
-* CODESYS V3
-* Structured Text (IEC 61131-3)
-* PLC Programming
-* HMI Visualization
+(* Reset *)
 
-## System Operation
+IF ResetButton THEN
+    AlarmActive := FALSE;
+    AlarmLamp := FALSE;
+END_IF;
 
-1. Press **Start** to run the conveyor.
-2. Products are detected using the simulated sensor.
-3. Each detected product increments the counter.
-4. The progress bar displays the current product count.
-5. The sensor lamp indicates product detection.
-6. Emergency Stop immediately halts the conveyor and activates the alarm.
-7. Reset clears the alarm and restores normal operation.
 
-## Learning Objectives
+(* Alarm Mode *)
 
-This project demonstrates:
+IF AlarmActive THEN
 
-* PLC logic development
-* Industrial automation principles
-* Sensor-based product detection
-* Event-driven programming with R_TRIG
-* HMI design and visualization
-* Alarm management and safety functions
+    ConveyorMotor := FALSE;
 
-## Author
+    GreenLamp := FALSE;
+    RedLamp := TRUE;
+    AlarmLamp := TRUE;
 
-Hashem Hashemnia
+ELSE
 
-Engineering Management & Automation Engineering Enthusiast
+    AlarmLamp := FALSE;
+
+(* Start Conveyor *)
+IF StartButton THEN
+    ConveyorMotor := TRUE;
+    StartButton := FALSE;
+END_IF;
+
+(* Stop Conveyor *)
+IF StopButton THEN
+    ConveyorMotor := FALSE;
+    StopButton := FALSE;
+END_IF;
+   
+IF BoxSensor AND ConveyorMotor THEN
+    SensorLamp := TRUE;
+ELSE
+    SensorLamp := FALSE;
+END_IF;
+
+(* Product Counter *)
+SensorTrigger(CLK := BoxSensor);
+
+IF SensorTrigger.Q THEN
+    BoxCount := BoxCount + 1;
+END_IF;
+
+(* Counter Reset *)
+IF CounterReset THEN
+    BoxCount := 0;
+    BoxSensor := FALSE;
+END_IF;
+
+
+    (* Lamp Status *)
+
+    IF ConveyorMotor THEN
+        GreenLamp := TRUE;
+        RedLamp := FALSE;
+
+    ELSE
+
+        GreenLamp := FALSE;
+        RedLamp := TRUE;
+
+    END_IF;
+
+END_IF;
+
+IF ConveyorMotor THEN
+
+    BeltMove := BeltMove + 1;
+
+    IF BeltMove > 120 THEN
+        BeltMove := 0;
+    END_IF;
+END_IF;
